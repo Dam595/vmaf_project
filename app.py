@@ -1,11 +1,8 @@
 import streamlit as st
 import os
-import sys
 import json
 import glob
 import time
-import tempfile
-import shutil
 import subprocess
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -14,7 +11,7 @@ import numpy as np
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
 # -----------------------------------------------------------------------
-# CẤU HÌNH TRANG
+# PAGE CONFIG
 # -----------------------------------------------------------------------
 st.set_page_config(
     page_title="VMAF QoE Analyzer",
@@ -24,7 +21,7 @@ st.set_page_config(
 )
 
 # -----------------------------------------------------------------------
-# ĐƯỜNG DẪN HỆ THỐNG
+# PATHS
 # -----------------------------------------------------------------------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_REF_VIDEO = os.path.join(BASE_DIR, "data", "reference", "reference.mp4")
@@ -37,7 +34,7 @@ for d in [JSON_OUTPUT_DIR, PLOT_DIR, UPLOAD_TEMP_DIR, DISTORTED_DIR]:
     os.makedirs(d, exist_ok=True)
 
 # -----------------------------------------------------------------------
-# NGƯỠNG CHẤT LƯỢNG
+# QUALITY THRESHOLDS
 # -----------------------------------------------------------------------
 VMAF_EXCELLENT = 93
 VMAF_GOOD = 75
@@ -58,48 +55,48 @@ def get_quality_label(score):
 
 
 # -----------------------------------------------------------------------
-# ENCODE CONFIGS
+# ENCODE PRESETS
 # -----------------------------------------------------------------------
 ENCODE_PRESETS = {
-    "H.264 — 150kbps": {
-        "filename": "h264_150kbps.mp4",
+    "H.264 — 500kbps": {
+        "filename": "h264_500kbps.mp4",
         "vf": None,
-        "codec_args": ["-c:v", "libx264", "-b:v", "150k", "-an"]
+        "codec_args": ["-c:v", "libx264", "-b:v", "500k", "-an"]
     },
-    "H.264 — 100kbps": {
-        "filename": "h264_100kbps.mp4",
+    "H.264 — 1Mbps": {
+        "filename": "h264_1mbps.mp4",
         "vf": None,
-        "codec_args": ["-c:v", "libx264", "-b:v", "100k", "-an"]
+        "codec_args": ["-c:v", "libx264", "-b:v", "1000k", "-an"]
     },
-    "H.264 — 50kbps (heavy compression)": {
-        "filename": "h264_50kbps.mp4",
+    "H.264 — 2Mbps": {
+        "filename": "h264_2mbps.mp4",
         "vf": None,
-        "codec_args": ["-c:v", "libx264", "-b:v", "50k", "-an"]
+        "codec_args": ["-c:v", "libx264", "-b:v", "2000k", "-an"]
     },
-    "H.265 — 200kbps": {
-        "filename": "h265_200kbps.mp4",
+    "H.265 — 500kbps": {
+        "filename": "h265_500kbps.mp4",
         "vf": None,
-        "codec_args": ["-c:v", "libx265", "-b:v", "200k", "-an", "-tag:v", "hvc1"]
+        "codec_args": ["-c:v", "libx265", "-b:v", "500k", "-an", "-tag:v", "hvc1"]
     },
-    "H.265 — 100kbps": {
-        "filename": "h265_100kbps.mp4",
+    "H.265 — 1Mbps": {
+        "filename": "h265_1mbps.mp4",
         "vf": None,
-        "codec_args": ["-c:v", "libx265", "-b:v", "100k", "-an", "-tag:v", "hvc1"]
+        "codec_args": ["-c:v", "libx265", "-b:v", "1000k", "-an", "-tag:v", "hvc1"]
     },
-    "VP9 — 150kbps": {
-        "filename": "vp9_150kbps.mp4",
+    "VP9 — 1Mbps": {
+        "filename": "vp9_1mbps.mp4",
         "vf": None,
-        "codec_args": ["-c:v", "libvpx-vp9", "-b:v", "150k", "-an"]
+        "codec_args": ["-c:v", "libvpx-vp9", "-b:v", "1000k", "-an"]
     },
-    "H.264 + Blur filter": {
-        "filename": "h264_blur.mp4",
+    "H.264 — 500kbps + Blur": {
+        "filename": "h264_500k_blur.mp4",
         "vf": "boxblur=2:1",
-        "codec_args": ["-c:v", "libx264", "-b:v", "200k", "-an"]
+        "codec_args": ["-c:v", "libx264", "-b:v", "500k", "-an"]
     },
-    "H.264 — 15fps (frame drop)": {
-        "filename": "h264_15fps.mp4",
+    "H.264 — 1Mbps + 15fps": {
+        "filename": "h264_1mbps_15fps.mp4",
         "vf": "fps=15",
-        "codec_args": ["-c:v", "libx264", "-b:v", "200k", "-an"]
+        "codec_args": ["-c:v", "libx264", "-b:v", "1000k", "-an"]
     },
 }
 
@@ -122,7 +119,7 @@ def _encode_worker(args):
 
 
 # -----------------------------------------------------------------------
-# VMAF WORKERS
+# VMAF WORKER
 # -----------------------------------------------------------------------
 def _vmaf_worker(args):
     ref_path, dist_path, json_out_path = args
@@ -188,8 +185,10 @@ def fig_qoe_over_time(all_data):
                 color=PALETTE[i % len(PALETTE)], alpha=0.85, linewidth=1.8)
     ax.axhline(VMAF_EXCELLENT, color="#27ae60", linestyle="--", linewidth=1, alpha=0.6, label=f"Excellent >={VMAF_EXCELLENT}")
     ax.axhline(VMAF_GOOD, color="#f39c12", linestyle="--", linewidth=1, alpha=0.6, label=f"Good >={VMAF_GOOD}")
-    ax.set_xlabel("Frame Number"); ax.set_ylabel("VMAF Score (0-100)")
-    ax.set_ylim(0, 105); ax.legend(fontsize=7, loc="lower left")
+    ax.set_xlabel("Frame Number")
+    ax.set_ylabel("VMAF Score (0-100)")
+    ax.set_ylim(0, 105)
+    ax.legend(fontsize=7, loc="lower left")
     ax.grid(True, linestyle="--", alpha=0.4)
     plt.tight_layout()
     return fig
@@ -219,9 +218,12 @@ def fig_bar_comparison(all_data):
                         ha="center", va="bottom", fontsize=7)
 
     ax.axhline(VMAF_EXCELLENT, color="#27ae60", linestyle="--", linewidth=1, alpha=0.5)
-    ax.set_xticks(x); ax.set_xticklabels(configs, fontsize=8, rotation=15, ha="right")
-    ax.set_ylabel("VMAF Score"); ax.set_ylim(0, 115)
-    ax.legend(fontsize=9); ax.grid(axis="y", linestyle="--", alpha=0.4)
+    ax.set_xticks(x)
+    ax.set_xticklabels(configs, fontsize=8, rotation=15, ha="right")
+    ax.set_ylabel("VMAF Score")
+    ax.set_ylim(0, 115)
+    ax.legend(fontsize=9)
+    ax.grid(axis="y", linestyle="--", alpha=0.4)
     plt.tight_layout()
     return fig
 
@@ -233,7 +235,8 @@ def fig_boxplot(all_data):
 
     bp = ax.boxplot(data_list, labels=labels, patch_artist=True, notch=False)
     for patch, color in zip(bp["boxes"], PALETTE):
-        patch.set_facecolor(color); patch.set_alpha(0.7)
+        patch.set_facecolor(color)
+        patch.set_alpha(0.7)
 
     for i, (name, d) in enumerate(all_data.items(), 1):
         ax.plot(i, d["mean"], marker="D", color="black", markersize=6,
@@ -241,8 +244,10 @@ def fig_boxplot(all_data):
 
     ax.axhline(VMAF_EXCELLENT, color="#27ae60", linestyle="--", linewidth=1, alpha=0.5)
     ax.set_xticklabels(labels, fontsize=8, rotation=15, ha="right")
-    ax.set_ylabel("VMAF Score"); ax.set_ylim(0, 108)
-    ax.legend(fontsize=9); ax.grid(axis="y", linestyle="--", alpha=0.4)
+    ax.set_ylabel("VMAF Score")
+    ax.set_ylim(0, 108)
+    ax.legend(fontsize=9)
+    ax.grid(axis="y", linestyle="--", alpha=0.4)
     plt.tight_layout()
     return fig
 
@@ -260,7 +265,8 @@ def fig_heatmap(all_data):
     sns.heatmap(df, annot=True, fmt=".3f", cmap="RdYlGn",
                 vmin=0, vmax=1, linewidths=0.5, ax=ax,
                 cbar_kws={"label": "Score (0-1)"})
-    ax.set_xlabel("Sub-Metric"); ax.set_ylabel("")
+    ax.set_xlabel("Sub-Metric")
+    ax.set_ylabel("")
     plt.tight_layout()
     return fig
 
@@ -300,41 +306,41 @@ st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
 # SIDEBAR
 # -----------------------------------------------------------------------
 with st.sidebar:
-    st.header("Cau hinh Pipeline")
+    st.header("Pipeline Configuration")
 
-    st.subheader("Video Goc (Reference)")
-    ref_mode = st.radio("Nguon video goc", ["Dung file mac dinh", "Upload moi"], horizontal=True)
+    st.subheader("Reference Video")
+    ref_mode = st.radio("Source", ["Use default file", "Upload new"], horizontal=True)
 
     ref_video_path = None
-    if ref_mode == "Dung file mac dinh":
+    if ref_mode == "Use default file":
         if os.path.exists(DEFAULT_REF_VIDEO):
-            st.success(f"OK {os.path.basename(DEFAULT_REF_VIDEO)}")
+            st.success(f"✅ {os.path.basename(DEFAULT_REF_VIDEO)}")
             ref_video_path = DEFAULT_REF_VIDEO
         else:
-            st.error("Khong tim thay data/reference/reference.mp4")
+            st.error("❌ File not found: data/reference/reference.mp4")
     else:
-        ref_upload = st.file_uploader("Upload video goc", type=["mp4", "mkv", "avi", "mov"])
+        ref_upload = st.file_uploader("Upload reference video", type=["mp4", "mkv", "avi", "mov"])
         if ref_upload:
             ref_tmp = os.path.join(UPLOAD_TEMP_DIR, f"ref_{ref_upload.name}")
             with open(ref_tmp, "wb") as f:
                 f.write(ref_upload.read())
             ref_video_path = ref_tmp
-            st.success(f"OK {ref_upload.name}")
+            st.success(f"✅ {ref_upload.name}")
 
     st.markdown("---")
 
-    st.subheader("Video Nen (Distorted)")
-    dist_mode = st.radio("Nguon video nen", ["Dung thu muc mac dinh", "Upload moi"], horizontal=True)
+    st.subheader("Distorted Videos")
+    dist_mode = st.radio("Source", ["Use default folder", "Upload new"], horizontal=True, key="dist_mode")
 
     dist_video_paths = []
-    if dist_mode == "Dung thu muc mac dinh":
+    if dist_mode == "Use default folder":
         dist_video_paths = sorted(glob.glob(os.path.join(DISTORTED_DIR, "*.mp4")))
-        st.info(f"Tim thay {len(dist_video_paths)} video")
+        st.info(f"Found {len(dist_video_paths)} video(s)")
         for p in dist_video_paths:
-            st.caption(f"- {os.path.basename(p)}")
+            st.caption(f"• {os.path.basename(p)}")
     else:
         dist_uploads = st.file_uploader(
-            "Upload video nen (co the chon nhieu file)",
+            "Upload distorted videos (multiple files allowed)",
             type=["mp4", "mkv", "avi", "mov"],
             accept_multiple_files=True
         )
@@ -344,48 +350,77 @@ with st.sidebar:
                 with open(tmp_path, "wb") as f:
                     f.write(up.read())
                 dist_video_paths.append(tmp_path)
-            st.success(f"Da upload {len(dist_video_paths)} video")
+            st.success(f"✅ {len(dist_video_paths)} video(s) uploaded")
 
     st.markdown("---")
 
-    st.subheader("Tuy chon xu ly")
+    st.subheader("Processing Options")
     max_workers = st.slider(
-        "So luong song song (workers)",
+        "Parallel workers",
         min_value=1,
         max_value=os.cpu_count() or 4,
         value=min(max(len(dist_video_paths), 2), os.cpu_count() or 4),
-        help="So video xu ly dong thoi."
+        help="Number of videos processed simultaneously."
     )
 
     st.markdown("---")
-    run_btn = st.button("Bat dau phan tich VMAF", type="primary", use_container_width=True)
+    run_btn = st.button("🚀 Run VMAF Analysis", type="primary", use_container_width=True)
+
+    st.markdown("---")
+    st.subheader("🗑️ Clear Data")
+    clear_distorted = st.checkbox("Delete distorted videos")
+    clear_json = st.checkbox("Delete VMAF results (JSON)")
+    clear_temp = st.checkbox("Delete temp uploads")
+
+    if st.button("Clear Selected", type="secondary", use_container_width=True):
+        cleared = []
+        if clear_distorted:
+            files = glob.glob(os.path.join(DISTORTED_DIR, "*.mp4"))
+            for f in files:
+                os.remove(f)
+            cleared.append(f"{len(files)} distorted video(s)")
+        if clear_json:
+            files = glob.glob(os.path.join(JSON_OUTPUT_DIR, "*.json"))
+            for f in files:
+                os.remove(f)
+            cleared.append(f"{len(files)} JSON result(s)")
+        if clear_temp:
+            files = glob.glob(os.path.join(UPLOAD_TEMP_DIR, "*"))
+            for f in files:
+                os.remove(f)
+            cleared.append(f"{len(files)} temp file(s)")
+        if cleared:
+            st.success("Cleared: " + ", ".join(cleared))
+            st.rerun()
+        else:
+            st.warning("Nothing selected to clear.")
 
 # -----------------------------------------------------------------------
-# 3 TABS CHINH
+# MAIN TABS
 # -----------------------------------------------------------------------
 tab_encode, tab_vmaf, tab_results = st.tabs([
-    "Encode Distorted Videos",
-    "VMAF Pipeline",
-    "Ket Qua & Phan Tich"
+    "🎞️ Encode Distorted Videos",
+    "⚡ VMAF Pipeline",
+    "📊 Results & Analysis"
 ])
 
 # -----------------------------------------------------------------------
 # TAB 1: ENCODE
 # -----------------------------------------------------------------------
 with tab_encode:
-    st.subheader("Tao Video Distorted tu Reference")
+    st.subheader("Generate Distorted Videos from Reference")
     st.markdown(
-        "Chon cac cau hinh nen muon tao. App se encode song song tu video goc "
-        "va luu vao thu muc `data/distorted/` de dung cho pipeline VMAF."
+        "Select compression presets to encode. Videos will be saved to "
+        "`data/distorted/` and used as input for the VMAF pipeline."
     )
 
     if not ref_video_path:
-        st.warning("Vui long chon video goc o sidebar truoc.")
+        st.warning("⚠️ Please select a reference video in the sidebar first.")
     else:
         st.info(f"Reference: `{os.path.basename(ref_video_path)}`")
 
         selected_presets = st.multiselect(
-            "Chon cau hinh encode",
+            "Select encode presets",
             options=list(ENCODE_PRESETS.keys()),
             default=list(ENCODE_PRESETS.keys()),
         )
@@ -393,20 +428,19 @@ with tab_encode:
         col_workers, col_btn = st.columns([2, 1])
         with col_workers:
             encode_workers = st.slider(
-                "So luong encode song song",
+                "Parallel encode workers",
                 min_value=1, max_value=os.cpu_count() or 4,
                 value=min(len(selected_presets) if selected_presets else 2, os.cpu_count() or 4)
             )
         with col_btn:
             st.markdown("<br>", unsafe_allow_html=True)
-            encode_btn = st.button("Bat dau Encode", type="primary", use_container_width=True)
+            encode_btn = st.button("▶️ Start Encoding", type="primary", use_container_width=True)
 
         if encode_btn:
             if not selected_presets:
-                st.error("Vui long chon it nhat 1 cau hinh.")
+                st.error("Please select at least one preset.")
             else:
-                st.markdown("**Dang encode...**")
-                prog = st.progress(0, text="Khoi tao...")
+                prog = st.progress(0, text="Initializing...")
                 log = st.empty()
                 log_lines = []
 
@@ -424,42 +458,42 @@ with tab_encode:
                     for future in as_completed(futures):
                         r = future.result()
                         results.append(r)
-                        icon = "OK" if r["status"] == "success" else "ERROR"
-                        log_lines.append(f"{icon} `{r['name']}` - {r['time']}s")
+                        icon = "✅" if r["status"] == "success" else "❌"
+                        log_lines.append(f"{icon} `{r['name']}` — {r['time']}s")
                         log.markdown("\n\n".join(log_lines))
                         prog.progress(len(results) / len(task_args),
-                                      text=f"{len(results)}/{len(task_args)} hoan thanh...")
+                                      text=f"{len(results)}/{len(task_args)} completed...")
 
                 total_encode_time = round(time.time() - encode_start, 2)
                 success_n = sum(1 for r in results if r["status"] == "success")
 
                 if success_n == len(results):
-                    st.success(f"Encode xong {success_n} video - Tong: {total_encode_time}s ({encode_workers} workers)")
+                    st.success(f"🎉 Encoding complete — {success_n} videos in **{total_encode_time}s** ({encode_workers} workers)")
                 else:
-                    st.warning(f"{success_n}/{len(results)} thanh cong - {total_encode_time}s")
+                    st.warning(f"⚠️ {success_n}/{len(results)} succeeded — {total_encode_time}s")
 
                 df_enc = pd.DataFrame([
-                    {"File": r["name"], "Thoi gian (s)": r["time"], "Trang thai": r["status"]}
+                    {"File": r["name"], "Time (s)": r["time"], "Status": r["status"]}
                     for r in results
                 ])
                 st.dataframe(df_enc, use_container_width=True, hide_index=True)
-                st.info("Cac video da duoc luu vao data/distorted/. Chuyen sang tab VMAF Pipeline de cham diem.")
+                st.info("Videos saved to `data/distorted/`. Switch to the **VMAF Pipeline** tab to score them.")
 
 # -----------------------------------------------------------------------
 # TAB 2: VMAF PIPELINE
 # -----------------------------------------------------------------------
 with tab_vmaf:
-    st.subheader("Chay VMAF Pipeline")
+    st.subheader("Run VMAF Scoring Pipeline")
 
     if run_btn:
         if not ref_video_path:
-            st.error("Vui long chon video goc o sidebar.")
+            st.error("⚠️ Please select a reference video in the sidebar.")
         elif not dist_video_paths:
-            st.error("Khong co video nen. Hay encode truoc o tab Encode hoac upload video.")
+            st.error("⚠️ No distorted videos found. Please encode or upload videos first.")
         else:
-            st.markdown(f"**Reference:** `{os.path.basename(ref_video_path)}` | **{len(dist_video_paths)} video** | **{max_workers} workers**")
+            st.markdown(f"**Reference:** `{os.path.basename(ref_video_path)}` | **{len(dist_video_paths)} video(s)** | **{max_workers} worker(s)**")
 
-            progress_bar = st.progress(0, text="Khoi tao...")
+            progress_bar = st.progress(0, text="Initializing...")
             log_box = st.empty()
             log_lines = []
 
@@ -477,48 +511,49 @@ with tab_vmaf:
                 for future in as_completed(futures):
                     r = future.result()
                     results.append(r)
-                    icon = "OK" if r["status"] == "success" else "ERROR"
-                    log_lines.append(f"{icon} `{r['video']}` - {r['time']}s")
+                    icon = "✅" if r["status"] == "success" else "❌"
+                    log_lines.append(f"{icon} `{r['video']}` — {r['time']}s")
                     log_box.markdown("\n\n".join(log_lines))
                     progress_bar.progress(len(results) / len(task_args),
-                                          text=f"{len(results)}/{len(task_args)} video...")
+                                          text=f"{len(results)}/{len(task_args)} videos scored...")
 
             total_time = round(time.time() - pipeline_start, 2)
             success_count = sum(1 for r in results if r["status"] == "success")
 
             if success_count == len(results):
-                st.success(f"Hoan thanh! {success_count}/{len(results)} video - Tong: {total_time}s")
+                st.success(f"🎉 Done! {success_count}/{len(results)} videos scored — Total: **{total_time}s**")
             else:
-                st.warning(f"{success_count}/{len(results)} thanh cong - {total_time}s")
+                st.warning(f"⚠️ {success_count}/{len(results)} succeeded — {total_time}s")
 
-            with st.expander("Chi tiet hieu nang song song"):
+            with st.expander("📊 Parallel processing performance details"):
                 df_perf = pd.DataFrame([
-                    {"Video": r["video"], "Thoi gian (s)": r["time"], "Trang thai": r["status"]}
+                    {"Video": r["video"], "Time (s)": r["time"], "Status": r["status"]}
                     for r in results
                 ])
                 st.dataframe(df_perf, use_container_width=True, hide_index=True)
                 avg = round(sum(r["time"] for r in results) / len(results), 2)
                 st.caption(
-                    f"{len(results)} video xu ly song song - "
-                    f"Tong: {total_time}s | Trung binh: {avg}s/video | Workers: {max_workers}"
+                    f"{len(results)} videos processed in parallel — "
+                    f"Total: {total_time}s | Avg: {avg}s/video | Workers: {max_workers}"
                 )
 
             st.balloons()
     else:
-        st.info("Bam 'Bat dau phan tich VMAF' o sidebar de chay pipeline.")
+        st.info("👈 Click **'Run VMAF Analysis'** in the sidebar to start the pipeline.")
 
 # -----------------------------------------------------------------------
-# TAB 3: KET QUA
+# TAB 3: RESULTS
 # -----------------------------------------------------------------------
 with tab_results:
-    st.subheader("Phan Tich Ket Qua QoE")
+    st.subheader("QoE Results & Analysis")
 
     all_data = load_all_results(JSON_OUTPUT_DIR)
 
     if not all_data:
-        st.info("Chua co du lieu. Hay chay VMAF Pipeline truoc.")
+        st.info("ℹ️ No results yet. Run the VMAF Pipeline first.")
     else:
-        st.markdown("**Tong Quan Nhanh**")
+        # Metric cards
+        st.markdown("**Quick Overview**")
         cols = st.columns(min(len(all_data), 4))
         for i, (name, d) in enumerate(all_data.items()):
             label, _ = get_quality_label(d["mean"])
@@ -528,7 +563,8 @@ with tab_results:
 
         st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
 
-        st.markdown("**Bang So Sanh Chi Tiet**")
+        # Summary table
+        st.markdown("**Detailed Comparison Table**")
         df_summary = build_summary_df(all_data)
 
         def style_quality(val):
@@ -539,44 +575,47 @@ with tab_results:
 
         styled_df = df_summary.style.map(style_quality, subset=["Quality"])
         st.dataframe(styled_df, use_container_width=True, hide_index=True)
-        st.caption("VMAF >= 93: Excellent | >= 75: Good | >= 50: Fair | < 50: Poor")
+        st.caption("VMAF >= 93: Excellent | >= 75: Good | >= 50: Fair | < 50: Poor — Score of 93+ is considered perceptually transparent to source.")
 
         st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
 
-        st.markdown("**Bieu Do Phan Tich**")
+        # Charts
+        st.markdown("**Analysis Charts**")
         chart_tab1, chart_tab2, chart_tab3, chart_tab4 = st.tabs([
-            "QoE Over Time",
-            "Bar Comparison",
-            "Box Plot",
-            "Sub-Metrics Heatmap"
+            "📉 QoE Over Time",
+            "📊 Bar Comparison",
+            "📦 Box Plot",
+            "🌡️ Sub-Metrics Heatmap"
         ])
 
         with chart_tab1:
             st.pyplot(fig_qoe_over_time(all_data))
-            st.caption("Duong ngang dut: nguong Excellent (93) va Good (75).")
+            st.caption("Dashed lines indicate Excellent (93) and Good (75) quality thresholds.")
 
         with chart_tab2:
             st.pyplot(fig_bar_comparison(all_data))
+            st.caption("Comparison of Mean, Min, Max, and Std Dev VMAF scores across compression configurations.")
 
         with chart_tab3:
             st.pyplot(fig_boxplot(all_data))
-            st.caption("Diamond = Mean. Box cang hep = chat luong cang on dinh.")
+            st.caption("◆ = Mean value. A narrower box indicates more stable quality over time.")
 
         with chart_tab4:
             hm = fig_heatmap(all_data)
             if hm:
                 st.pyplot(hm)
-                st.caption("ADM2: detail fidelity | VIF: visibility | Motion: chuyen dong")
+                st.caption("ADM2: detail fidelity | VIF (scale 0-3): visibility at different spatial frequencies | Motion: temporal complexity")
             else:
-                st.info("Khong du sub-metrics.")
+                st.info("Not enough sub-metrics to render heatmap.")
 
         st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
 
-        st.markdown("**Xuat Ket Qua**")
+        # Export
+        st.markdown("**Export Results**")
         col1, col2 = st.columns(2)
         with col1:
             csv_data = df_summary.to_csv(index=False).encode("utf-8")
-            st.download_button("Tai bang thong ke (.csv)", csv_data,
+            st.download_button("⬇️ Download summary table (.csv)", csv_data,
                                "vmaf_summary.csv", "text/csv")
         with col2:
             all_json = {}
@@ -589,5 +628,5 @@ with tab_results:
                     "sub_metrics": d["sub"],
                 }
             json_bytes = json.dumps(all_json, indent=2).encode("utf-8")
-            st.download_button("Tai ket qua tong hop (.json)", json_bytes,
+            st.download_button("⬇️ Download full results (.json)", json_bytes,
                                "vmaf_all_results.json", "application/json")
