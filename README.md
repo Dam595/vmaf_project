@@ -15,9 +15,9 @@ A full pipeline for evaluating video compression quality using **VMAF (Video Mul
 
 ---
 
-## Requirements
+## Installation & Setup
 
-### System dependencies
+### 1. System dependencies
 
 FFmpeg must be compiled with `libvmaf` support. Verify with:
 
@@ -25,22 +25,46 @@ FFmpeg must be compiled with `libvmaf` support. Verify with:
 ffmpeg -filters 2>/dev/null | grep vmaf
 ```
 
-If `libvmaf` is not listed, install a full-featured FFmpeg build:
+If `libvmaf` is not listed, install FFmpeg:
 
 ```bash
 # Ubuntu/Debian
 sudo apt update
 sudo apt install ffmpeg
-
-# Verify libvmaf is available
-ffmpeg -filters 2>/dev/null | grep vmaf
 ```
 
 If your distro's FFmpeg does not include libvmaf, build from source or use a static build from [https://johnvansickle.com/ffmpeg/](https://johnvansickle.com/ffmpeg/).
 
-### Python dependencies
+### 2. Clone the repository
 
-Python 3.8+ required.
+We recommend using a virtual environment (with Python 3.12.3):
+
+```bash
+git clone https://github.com/Dam595/vmaf_project
+cd <project-folder>
+```
+
+### 3. Create a virtual environment
+
+```bash
+python -m venv .venv
+```
+
+### 4. Activate the virtual environment
+
+Linux:
+
+```bash
+source .venv/bin/activate
+```
+
+Windows:
+
+```bash
+.venv\Scripts\activate
+```
+
+### 5. Install Python dependencies
 
 ```bash
 pip install -r requirements.txt
@@ -90,8 +114,8 @@ Then open [http://localhost:8501](http://localhost:8501) in your browser.
 **Workflow inside the app:**
 
 1. **Tab "Encode Distorted Videos"** — select compression presets and encode distorted videos
-2. **Sidebar** — click **"Bat dau phan tich VMAF"** to run the scoring pipeline
-3. **Tab "Ket Qua & Phan Tich"** — view results, charts, and download data
+2. **Sidebar** — click **"Run VMAF Analysis"** to start the scoring pipeline
+3. **Tab "Results & Analysis"** — view results, charts, and download data
 
 ---
 
@@ -140,14 +164,14 @@ Actual speedup depends on video resolution, duration, and CPU count.
 
 | Preset | Codec | Bitrate / Filter |
 |--------|-------|-----------------|
-| H.264 — 150kbps | libx264 | 150 kbps |
-| H.264 — 100kbps | libx264 | 100 kbps |
-| H.264 — 50kbps  | libx264 | 50 kbps (heavy) |
-| H.265 — 200kbps | libx265 | 200 kbps |
-| H.265 — 100kbps | libx265 | 100 kbps |
-| VP9 — 150kbps   | libvpx-vp9 | 150 kbps |
-| H.264 + Blur    | libx264 | boxblur filter |
-| H.264 — 15fps   | libx264 | fps=15 filter |
+| H.264 — 500kbps | libx264 | 500 kbps |
+| H.264 — 1Mbps | libx264 | 1000 kbps |
+| H.264 — 2Mbps | libx264 | 2000 kbps |
+| H.265 — 500kbps | libx265 | 500 kbps |
+| H.265 — 1Mbps | libx265 | 1000 kbps |
+| VP9 — 1Mbps | libvpx-vp9 | 1000 kbps |
+| H.264 — 500kbps + Blur | libx264 | 500 kbps + boxblur filter |
+| H.264 — 1Mbps + 15fps | libx264 | 1000 kbps + fps=15 filter |
 
 ---
 
