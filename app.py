@@ -110,7 +110,7 @@ def _encode_worker(args):
     cmd.append(output_path)
     start = time.time()
     try:
-        subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+        subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, input=b'y\n')
         return {"name": os.path.basename(output_path), "status": "success", "time": round(time.time() - start, 2)}
     except subprocess.CalledProcessError as e:
         return {"name": os.path.basename(output_path), "status": "error",
@@ -124,9 +124,11 @@ def _encode_worker(args):
 def _vmaf_worker(args):
     ref_path, dist_path, json_out_path = args
     video_name = os.path.basename(dist_path)
+    json_out_escaped = os.path.relpath(json_out_path).replace("\\", "/")
+    print(f"[DEBUG] escaped path: {repr(json_out_escaped)}")
     filter_spec = (
         "[0:v][1:v]scale2ref=w=iw:h=ih[dist_scaled][ref_scaled];"
-        f"[dist_scaled][ref_scaled]libvmaf=log_fmt=json:log_path={json_out_path}"
+        f"[dist_scaled][ref_scaled]libvmaf=log_fmt=json:log_path={json_out_escaped}"
     )
     cmd = ["ffmpeg", "-y", "-i", dist_path, "-i", ref_path,
            "-filter_complex", filter_spec, "-f", "null", "-"]
@@ -139,7 +141,10 @@ def _vmaf_worker(args):
         return {"video": video_name, "status": "error",
                 "time": round(time.time() - start, 2),
                 "error_msg": e.stderr.decode("utf-8", errors="replace")}
-
+    except Exception as e:
+        return {"video": video_name, "status": "error",
+                "time": round(time.time() - start, 2),
+                "error_msg": str(e)}
 
 # -----------------------------------------------------------------------
 # PARSE JSON
@@ -512,7 +517,7 @@ with tab_vmaf:
                     r = future.result()
                     results.append(r)
                     icon = "✅" if r["status"] == "success" else "❌"
-                    log_lines.append(f"{icon} `{r['video']}` — {r['time']}s")
+                    log_lines.append(f"{icon} `{r['video']}` — {r['time']}s | {r.get('error_msg', '')[-500:]}")
                     log_box.markdown("\n\n".join(log_lines))
                     progress_bar.progress(len(results) / len(task_args),
                                           text=f"{len(results)}/{len(task_args)} videos scored...")

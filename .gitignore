@@ -1,3 +1,63 @@
+# ==========================================
+# 1. Môi trường ảo (Virtual Environments)
+# ==========================================
+.venv/
 venv/
+ENV/
+env/
+target/
+
+# ==========================================
+# 2. Python (Byte-compiled / optimize / rác)
+# ==========================================
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# ==========================================
+# 3. Streamlit & IDE (VS Code, PyCharm)
+# ==========================================
+.streamlit/config.toml
+.streamlit/secrets.toml
+.vscode/
+.idea/
+
+# ==========================================
+# 4. Hệ điều hành (Windows/Mac rác)
+# ==========================================
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+
+# ==========================================
+# 5. Dữ liệu Video nặng (Tùy chọn cho dự án VMAF)
+# ==========================================
+# Nếu bạn không muốn push các file video nặng lên GitHub, 
+# hãy bỏ dấu thăng (#) ở các dòng dưới đây:
+# *.mp4
+# *.mkv
+# *.avi
+# *.yuv
+# /data/raw/
+# /data/processed/
